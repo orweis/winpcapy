@@ -2,11 +2,12 @@
 @author Or Weis 2015
 """
 
-import winpcapy_types as wtypes
+from . import winpcapy_types as wtypes
 import ctypes
 import inspect
 import fnmatch
 import time
+import sys
 
 
 class WinPcapDevices(object):
@@ -46,12 +47,12 @@ class WinPcapDevices(object):
         res = {}
         with cls() as devices:
             for device in devices:
-                res[device.name] = device.description
+                res[device.name.decode('utf-8')] = device.description.decode('utf-8')
         return res
 
     @classmethod
     def get_matching_device(cls, glob=None):
-        for name, description in cls.list_devices().iteritems():
+        for name, description in cls.list_devices().items():
             if fnmatch.fnmatch(description, glob):
                 return name, description
         return None, None
@@ -73,7 +74,7 @@ class WinPcap(object):
         @param timeout specifies the read timeout in milliseconds.
         """
         self._handle = None
-        self._name = device_name
+        self._name = device_name.encode('utf-8')
         self._snap_length = snap_length
         self._promiscuous = promiscuous
         self._timeout = timeout
@@ -121,9 +122,10 @@ class WinPcapUtils(object):
             local_tv_sec = header.contents.ts.tv_sec
             ltime = time.localtime(local_tv_sec)
             timestr = time.strftime("%H:%M:%S", ltime)
-            print("%s,%.6d len:%d" % (timestr, header.contents.ts.tv_usec, header.contents.len))
+            print(("%s,%.6d len:%d" % (timestr, header.contents.ts.tv_usec, header.contents.len)))
         except KeyboardInterrupt:
             win_pcap.stop()
+            sys.exit(0)
 
     @staticmethod
     def capture_on(pattern, callback):
