@@ -11,5 +11,5 @@ WinPcapUtils - easy/quick usage and access methods
 
 __author__ = 'OrW'
 
-from winpcapy import WinPcap, WinPcapDevices, WinPcapUtils
+from .winpcapy import WinPcap, WinPcapDevices, WinPcapUtils
 
