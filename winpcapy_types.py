@@ -35,7 +35,7 @@ else:
 ##
 u_short = c_ushort
 bpf_int32 = c_int
-u_int = c_int
+u_int = c_uint
 bpf_u_int32 = u_int
 pcap = c_void_p
 pcap_dumper = c_void_p
