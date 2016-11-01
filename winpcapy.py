@@ -140,3 +140,8 @@ class WinPcapUtils(object):
         Usage example capture_on_and_print("*Intel*Ethernet") will capture and print packets from an Intel Ethernet device
         """
         cls.capture_on(pattern, cls.packet_printer_callback)
+
+    @staticmethod
+    def capture_on_dev_name(device_name, callback):
+        with WinPcap(device_name) as capture:
+            capture.run(callback=callback)
