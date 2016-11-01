@@ -21,23 +21,6 @@ Based on Massimo Ciani's WinPcapy (https://code.google.com/p/winpcapy/)
 16:05:50,128862 len:60
 ```
 
-### Easy Packet live callback
-```python
-from winpcapy import WinPcapUtils
-
-# Example Callback function to parse IP packets
-def packet_callback(win_pcap, param, header, pkt_data):
-    # Assuming IP (for real parsing use modules like dpkt)
-    ip_frame = pkt_data[14:]
-    # Parse ips
-    src_ip = ".".join([str(ord(b)) for b in ip_frame[0xc:0x10]])
-    dst_ip = ".".join([str(ord(b)) for b in ip_frame[0x10:0x14]])
-    print("%s -> %s" % (src_ip, dst_ip))
-
-WinPcapUtils.capture_on("*Ethernet*", packet_callback)
-```
-
-
 ### Device/Interface enumeration 
 ```python
 >>> from winpcapy import WinPcapDevices
@@ -57,4 +40,36 @@ WinPcapUtils.capture_on("*Ethernet*", packet_callback)
 "\Device\NPF_{C2EAA982-F851-1337-1337-B8D2A9BCE406} Intel(R) Ethernet Connection I218-LM 0 0"
 "\Device\NPF_{EAF47DBE-5B49-1337-1337-BD059E02666B} Microsoft 0 0"
 "\Device\NPF_{2997B9BB-AA53-1337-1337-B862F874271C} Microsoft 0 0"
+```
+
+### Easy Packet live callback
+```python
+from winpcapy import WinPcapUtils
+
+# Example Callback function to parse IP packets
+def packet_callback(win_pcap, param, header, pkt_data):
+    # Assuming IP (for real parsing use modules like dpkt)
+    ip_frame = pkt_data[14:]
+    # Parse ips
+    src_ip = ".".join([str(ord(b)) for b in ip_frame[0xc:0x10]])
+    dst_ip = ".".join([str(ord(b)) for b in ip_frame[0x10:0x14]])
+    print("%s -> %s" % (src_ip, dst_ip))
+
+WinPcapUtils.capture_on("*Ethernet*", packet_callback)
+```
+
+```python
+from winpcapy import WinPcapUtils
+
+# Example Callback function to parse IP packets
+def packet_callback(win_pcap, param, header, pkt_data):
+    # Assuming IP (for real parsing use modules like dpkt)
+    ip_frame = pkt_data[14:]
+    # Parse ips
+    # Maybe you should use 'str(b)' instead of 'str(ord(b))'
+    src_ip = ".".join([str(b) for b in ip_frame[0xc:0x10]])
+    dst_ip = ".".join([str(b) for b in ip_frame[0x10:0x14]])
+    print("%s -> %s" % (src_ip, dst_ip))
+
+WinPcapUtils.capture_on_dev_name("\\Device\\NPF_{EAF47DBE-5B49-1337-1337-BD059E02666B}", packet_callback)
 ```
