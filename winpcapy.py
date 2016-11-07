@@ -11,7 +11,6 @@ import sys
 
 
 class WinPcapDevices(object):
-
     class PcapFindDevicesException(Exception):
         pass
 
@@ -59,7 +58,6 @@ class WinPcapDevices(object):
 
 
 class WinPcap(object):
-
     # /* prototype of the packet handler */
     # void packet_handler(u_char *param, const struct pcap_pkthdr *header, const u_char *pkt_data);
     HANDLER_SIGNATURE = ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.c_ubyte),
@@ -68,10 +66,10 @@ class WinPcap(object):
 
     def __init__(self, device_name, snap_length=65536, promiscuous=1, timeout=1000):
         """
-        @param device_name the name of the device to open on context enter
-        @param snap_length specifies the snapshot length to be set on the handle.
-        @param promiscuous  specifies if the interface is to be put into promiscuous mode(0 or 1).
-        @param timeout specifies the read timeout in milliseconds.
+        :param device_name: the name of the device to open on context enter
+        :param snap_length: specifies the snapshot length to be set on the handle.
+        :param promiscuous:  specifies if the interface is to be put into promiscuous mode(0 or 1).
+        :param timeout: specifies the read timeout in milliseconds.
         """
         self._handle = None
         self._name = device_name.encode('utf-8')
@@ -84,7 +82,8 @@ class WinPcap(object):
 
     def __enter__(self):
         assert self._handle is None
-        self._handle = wtypes.pcap_open_live(self._name, self._snap_length, self._promiscuous, self._timeout, self._err_buffer)
+        self._handle = wtypes.pcap_open_live(self._name, self._snap_length, self._promiscuous, self._timeout,
+                                             self._err_buffer)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -99,10 +98,11 @@ class WinPcap(object):
     def stop(self):
         wtypes.pcap_breakloop(self._handle)
 
-    def run(self, callback=None,  limit=0):
+    def run(self, callback=None, limit=0):
         """
         Start pcap's loop over the interface, calling the given callback for each packet
-        @param callback a function receiving
+        :param callback: a function receiving (win_pcap, param, header, pkt_data) for each packet intercepted
+        :param limit: how many packets to capture (A value of -1 or 0 is equivalent to infinity)
         """
         assert self._handle is not None
         # Set new callback
@@ -122,21 +122,35 @@ class WinPcapUtils(object):
             local_tv_sec = header.contents.ts.tv_sec
             ltime = time.localtime(local_tv_sec)
             timestr = time.strftime("%H:%M:%S", ltime)
-            print(("%s,%.6d len:%d" % (timestr, header.contents.ts.tv_usec, header.contents.len)))
+            print("%s,%.6d len:%d" % (timestr, header.contents.ts.tv_usec, header.contents.len))
         except KeyboardInterrupt:
             win_pcap.stop()
             sys.exit(0)
 
     @staticmethod
     def capture_on(pattern, callback):
+        """
+        :param pattern: a wildcard pattern to match the description of a network interface to capture packets on
+        :param callback: a function to call with each intercepted packet
+        """
         device_name, desc = WinPcapDevices.get_matching_device(pattern)
         if device_name is not None:
             with WinPcap(device_name) as capture:
                 capture.run(callback=callback)
 
+    @staticmethod
+    def capture_on_device_name(device_name, callback):
+        """
+        :param device_name: the name (guid) of a device as provided by WinPcapDevices.list_devices()
+        :param callback: a function to call with each intercepted packet
+        """
+        with WinPcap(device_name) as capture:
+            capture.run(callback=callback)
+
     @classmethod
     def capture_on_and_print(cls, pattern):
         """
-        Usage example capture_on_and_print("*Intel*Ethernet") will capture and print packets from an Intel Ethernet device
+        Usage example capture_on_and_print("*Intel*Ethernet")
+        will capture and print packets from an Intel Ethernet device
         """
         cls.capture_on(pattern, cls.packet_printer_callback)
