@@ -6,6 +6,12 @@ winpcapy
 
 Based on Massimo Ciani’s WinPcapy (https://code.google.com/p/winpcapy/)
 
+
+Install
+-------
+.. code:: bash
+    pip install winpcapy
+
 Usage
 -----
 
