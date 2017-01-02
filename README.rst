@@ -54,7 +54,7 @@ Device/Interface enumeration
 .. code:: python
 
     >>> from winpcapy import WinPcapDevices
-    # run on the first Ethernert interface and print a log for each packet
+    # Return a list of all the devices detected on the machine
     >>> WinPcapDevices.list_devices()
     {'\\Device\\NPF_{0A78B7C8-F023-1337-1337-84D448AA5126}': 'Microsoft',
      '\\Device\\NPF_{2997B9BB-AA53-1337-1337-B862F874271C}': 'Microsoft',
