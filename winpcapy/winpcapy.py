@@ -109,6 +109,17 @@ class WinPcap(object):
         self._callback = callback
         # Run loop with callback wrapper
         wtypes.pcap_loop(self._handle, limit, self._callback_wrapper, None)
+    def send(self, buf):
+        """
+        :send a bufer to the interface
+        """
+        assert self._handle is not None
+        l = (ctypes.c_int * 1)()
+        l = len(buf)
+        b = (ctypes.c_ubyte * l)()
+        for i in range(0, l):
+            b[i] = buf[i]
+        wtypes.pcap_sendpacket(self._handle, b, l)
 
 
 class WinPcapUtils(object):
@@ -154,3 +165,15 @@ class WinPcapUtils(object):
         will capture and print packets from an Intel Ethernet device
         """
         cls.capture_on(pattern, cls.packet_printer_callback)
+    @classmethod
+    def send_packet(self, pattern, buf, callback, limit=10):
+        """
+        : send and rcv respose
+        """
+        device_name, desc = WinPcapDevices.get_matching_device(pattern)
+        if device_name is not None:
+            with WinPcap(device_name) as capture:
+                capture.send(buf)
+                if callback is not None:
+                    capture.run(callback=callback, limit=limit)
+                
