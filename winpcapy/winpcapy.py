@@ -109,17 +109,19 @@ class WinPcap(object):
         self._callback = callback
         # Run loop with callback wrapper
         wtypes.pcap_loop(self._handle, limit, self._callback_wrapper, None)
+
     def send(self, buf):
         """
         :send a bufer to the interface
+        :param buf: buffer to send 
         """
         assert self._handle is not None
-        l = (ctypes.c_int * 1)()
-        l = len(buf)
-        b = (ctypes.c_ubyte * l)()
-        for i in range(0, l):
-            b[i] = buf[i]
-        wtypes.pcap_sendpacket(self._handle, b, l)
+        buf_length = (ctypes.c_int * 1)()
+        buf_length = len(buf)
+
+        buf_send = ctypes.cast(ctypes.create_string_buffer(buf, buf_length),\
+                               ctypes.POINTER(ctypes.c_ubyte)) 
+        wtypes.pcap_sendpacket(self._handle, buf_send, buf_length)
 
 
 class WinPcapUtils(object):
@@ -165,10 +167,14 @@ class WinPcapUtils(object):
         will capture and print packets from an Intel Ethernet device
         """
         cls.capture_on(pattern, cls.packet_printer_callback)
+
     @classmethod
-    def send_packet(self, pattern, buf, callback, limit=10):
+    def send_packet(self, pattern, buf, callback=None, limit=10):
         """
-        : send and rcv respose
+        : send and receive respose
+        :param pattern: a wildcard pattern to match the description of a network interface to capture packets on
+        :param buf: buffer to send 
+        :param callback: if not None, this function is to receive ack packet if you need
         """
         device_name, desc = WinPcapDevices.get_matching_device(pattern)
         if device_name is not None:
