@@ -17,7 +17,7 @@ __description__ = "A Modern Python wrapper for WinPcap"
 __uri__ = "https://github.com/orweis/winpcapy"
 __doc__ = __description__ + " <" + __uri__ + ">"
 __email__ = "py@bitweis.com"
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 __license__ = "GPLv2"
 __copyright__ = "Copyright (c) 2015 Or Weis"
 
