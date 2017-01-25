@@ -1,13 +1,16 @@
 """
 @author Or Weis 2015
 """
-
-from . import winpcapy_types as wtypes
+# Python 2 \ 3 compatibility
+try:
+    from . import winpcapy_types as wtypes
+except ValueError:
+    import winpcapy_types as wtypes
 import ctypes
-import inspect
 import fnmatch
 import time
 import sys
+from collections import Callable
 
 
 class WinPcapDevices(object):
@@ -58,11 +61,28 @@ class WinPcapDevices(object):
 
 
 class WinPcap(object):
+    """
+    A Class to access WinPcap interface functionality.
+    Wrapping device opening / closing using the 'with' statement
+    """
     # /* prototype of the packet handler */
     # void packet_handler(u_char *param, const struct pcap_pkthdr *header, const u_char *pkt_data);
     HANDLER_SIGNATURE = ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.c_ubyte),
                                          ctypes.POINTER(wtypes.pcap_pkthdr),
                                          ctypes.POINTER(ctypes.c_ubyte))
+
+    class WinPcapException(Exception):
+        pass
+
+    class CallbackIsNotCallable(WinPcapException):
+        pass
+
+    class DeviceIsNotOpen(WinPcapException):
+        """
+        Exception raised when trying to use the underlying device without opening it first.
+        Can eb resolved by calling the sought method within a 'with' statement.
+        """
+        pass
 
     def __init__(self, device_name, snap_length=65536, promiscuous=1, timeout=1000):
         """
@@ -91,11 +111,14 @@ class WinPcap(object):
             wtypes.pcap_close(self._handle)
 
     def packet_handler(self, param, header, pkt_pointer):
-        assert inspect.isfunction(self._callback) or inspect.ismethod(self._callback)
+        if not isinstance(self._callback, Callable):
+            raise self.CallbackIsNotCallable()
         pkt_data = ctypes.string_at(pkt_pointer, header.contents.len)
         return self._callback(self, param, header, pkt_data)
 
     def stop(self):
+        if self._handle is None:
+            raise self.DeviceIsNotOpen()
         wtypes.pcap_breakloop(self._handle)
 
     def run(self, callback=None, limit=0):
@@ -104,24 +127,24 @@ class WinPcap(object):
         :param callback: a function receiving (win_pcap, param, header, pkt_data) for each packet intercepted
         :param limit: how many packets to capture (A value of -1 or 0 is equivalent to infinity)
         """
-        assert self._handle is not None
+        if self._handle is None:
+            raise self.DeviceIsNotOpen()
         # Set new callback
         self._callback = callback
         # Run loop with callback wrapper
         wtypes.pcap_loop(self._handle, limit, self._callback_wrapper, None)
 
-    def send(self, buf):
+    def send(self, packet_buffer):
         """
-        :send a bufer to the interface
-        :param buf: buffer to send 
+        send a buffer as a packet to the network interface
+        :param packet_buffer: buffer to send (length shouldn't exceed MAX_INT)
         """
-        assert self._handle is not None
-        buf_length = (ctypes.c_int * 1)()
-        buf_length = len(buf)
-
-        buf_send = ctypes.cast(ctypes.create_string_buffer(buf, buf_length),\
-                               ctypes.POINTER(ctypes.c_ubyte)) 
-        wtypes.pcap_sendpacket(self._handle, buf_send, buf_length)
+        if self._handle is None:
+            raise self.DeviceIsNotOpen()
+        buffer_length = len(packet_buffer)
+        buf_send = ctypes.cast(ctypes.create_string_buffer(packet_buffer, buffer_length),
+                               ctypes.POINTER(ctypes.c_ubyte))
+        wtypes.pcap_sendpacket(self._handle, buf_send, buffer_length)
 
 
 class WinPcapUtils(object):
@@ -169,17 +192,17 @@ class WinPcapUtils(object):
         cls.capture_on(pattern, cls.packet_printer_callback)
 
     @classmethod
-    def send_packet(self, pattern, buf, callback=None, limit=10):
+    def send_packet(self, pattern, packet_buffer, callback=None, limit=10):
         """
-        : send and receive respose
+        Send a buffer as a packet to a network interface and optionally capture a response
         :param pattern: a wildcard pattern to match the description of a network interface to capture packets on
-        :param buf: buffer to send 
-        :param callback: if not None, this function is to receive ack packet if you need
+        :param packet_buffer: a buffer to send (length shouldn't exceed MAX_INT)
+        :param callback: If not None, a function to call with each intercepted packet
+        :param limit: how many packets to capture (A value of -1 or 0 is equivalent to infinity)
         """
         device_name, desc = WinPcapDevices.get_matching_device(pattern)
         if device_name is not None:
             with WinPcap(device_name) as capture:
-                capture.send(buf)
+                capture.send(packet_buffer)
                 if callback is not None:
                     capture.run(callback=callback, limit=limit)
-                

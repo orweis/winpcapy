@@ -70,3 +70,26 @@ Device/Interface enumeration
     "\Device\NPF_{C2EAA982-F851-1337-1337-B8D2A9BCE406} Intel(R) Ethernet Connection I218-LM 0 0"
     "\Device\NPF_{EAF47DBE-5B49-1337-1337-BD059E02666B} Microsoft 0 0"
     "\Device\NPF_{2997B9BB-AA53-1337-1337-B862F874271C} Microsoft 0 0"
+
+Easy Packet sending
+~~~~~~~~~~~~~~~~~~~
+
+.. code:: python
+
+    from winpcapy import WinPcapUtils
+    # Build a packet buffer
+    # This example-code is built for tutorial purposes, for actual packet crafting use modules like dpkt
+    arp_request_hex_template = "%(dst_mac)s%(src_mac)s08060001080006040001" \
+                               "%(sender_mac)s%(sender_ip)s%(target_mac)s%(target_ip)s" + "00" * 18
+    packet = arp_request_hex_template % {
+        "dst_mac": "aa"*6,
+        "src_mac": "bb"*6,
+        "sender_mac": "bb"*6,
+        "target_mac": "cc"*6,
+        # 192.168.0.1
+        "sender_ip": "c0a80001",
+        # 192.168.0.2
+        "target_ip": "c0a80002"
+    }
+    # Send the packet (ethernet frame with an arp request) on the interface
+    WinPcapUtils.send_packet("*Ethernet*", packet.decode("hex"))
