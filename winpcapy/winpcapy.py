@@ -1,11 +1,7 @@
 """
 @author Or Weis 2015
 """
-# Python 2 \ 3 compatibility
-try:
-    from . import winpcapy_types as wtypes
-except ValueError:
-    import winpcapy_types as wtypes
+from . import winpcapy_types as wtypes
 import ctypes
 import fnmatch
 import time
