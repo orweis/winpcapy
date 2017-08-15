@@ -69,7 +69,7 @@ timeval._fields_ = [('tv_sec', c_long),
 ## with sockaddr_in 
 class sockaddr(Structure):
     _fields_ = [("sa_family",c_ushort),
-                ("sa_data",c_char * 14)]
+                ("sa_data",c_byte * 14)]
 ##
 ## END misc
 ##
