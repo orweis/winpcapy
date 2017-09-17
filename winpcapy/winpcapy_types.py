@@ -17,7 +17,7 @@ WIN32=False
 HAVE_REMOTE=False
 
 
-if sys.platform.startswith('win'):
+if sys.platform.startswith('win') or sys.platform == 'cygwin' :
     WIN32=True
     HAVE_REMOTE=True
 
