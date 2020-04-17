@@ -21,7 +21,8 @@ class WinPcapDevices(object):
         all_devices = ctypes.POINTER(wtypes.pcap_if_t)()
         err_buffer = ctypes.create_string_buffer(wtypes.PCAP_ERRBUF_SIZE)
         if wtypes.pcap_findalldevs(ctypes.byref(all_devices), err_buffer) == -1:
-            raise self.PcapFindDevicesException("Error in WinPcapDevices: %s\n" % err_buffer.value)
+            raise self.PcapFindDevicesException(
+                "Error in WinPcapDevices: %s\n" % err_buffer.value)
         self._all_devices = all_devices
         return self
 
@@ -31,7 +32,8 @@ class WinPcapDevices(object):
 
     def pcap_interface_iterator(self):
         if self._all_devices is None:
-            raise self.PcapFindDevicesException("WinPcapDevices guard not called, use 'with statement'")
+            raise self.PcapFindDevicesException(
+                "WinPcapDevices guard not called, use 'with statement'")
         pcap_interface = self._all_devices
         while bool(pcap_interface):
             yield pcap_interface.contents
@@ -45,7 +47,8 @@ class WinPcapDevices(object):
         res = {}
         with cls() as devices:
             for device in devices:
-                res[device.name.decode('utf-8')] = device.description.decode('utf-8')
+                res[device.name.decode(
+                    'utf-8')] = device.description.decode('utf-8')
         return res
 
     @classmethod
@@ -88,6 +91,7 @@ class WinPcap(object):
         :param timeout: specifies the read timeout in milliseconds.
         """
         self._handle = None
+        self._fcode = ctypes.pointer(wtypes.bpf_program())
         self._name = device_name.encode('utf-8')
         self._snap_length = snap_length
         self._promiscuous = promiscuous
@@ -130,6 +134,37 @@ class WinPcap(object):
         # Run loop with callback wrapper
         wtypes.pcap_loop(self._handle, limit, self._callback_wrapper, None)
 
+    def compile(self, packet_filter, netmask=0xffffff):
+        """
+        takes a string containing a high-level Boolean (filter) expression and 
+        produces a low-level byte code that can be interpreted by the fileter engine 
+        in the packet driver. The syntax of the boolean expression can be found 
+        in the Filtering expression syntax section of this documentation.
+        :param packet_filter:  a high-level Boolean (filter) expression , npf
+        :param netmask: the mask of the first address of the interface 
+        """
+        if self._handle is None:
+            raise self.DeviceIsNotOpen()
+
+        if wtypes.pcap_compile(self._handle, self._fcode, ctypes.c_char_p(packet_filter), ctypes.c_int(1), ctypes.c_uint(netmask)) < 0:
+            return False
+        return True
+
+    def setfilter(self):
+        """
+        associates a filter with a capture session in the kernel driver.
+        Once setfilter() is called, the associated filter will be applied to
+        all the packets coming from the network, and all the conformant packets
+        (i.e., packets for which the Boolean expression evaluates to true) 
+        will be actually copied to the application.
+        """
+
+        if self._handle is None:
+            raise self.DeviceIsNotOpen()
+        if wtypes.pcap_setfilter(self._handle, self._fcode) < 0:
+            return False
+        return True
+
     def send(self, packet_buffer):
         """
         send a buffer as a packet to the network interface
@@ -154,7 +189,8 @@ class WinPcapUtils(object):
             local_tv_sec = header.contents.ts.tv_sec
             ltime = time.localtime(local_tv_sec)
             timestr = time.strftime("%H:%M:%S", ltime)
-            print("%s,%.6d len:%d" % (timestr, header.contents.ts.tv_usec, header.contents.len))
+            print("%s,%.6d len:%d" %
+                  (timestr, header.contents.ts.tv_usec, header.contents.len))
         except KeyboardInterrupt:
             win_pcap.stop()
             sys.exit(0)
@@ -186,6 +222,31 @@ class WinPcapUtils(object):
         will capture and print packets from an Intel Ethernet device
         """
         cls.capture_on(pattern, cls.packet_printer_callback)
+
+    @staticmethod
+    def test_compile_on_device_name(device_name,
+                                    packet_filter,
+                                    netmask=0xffffff):
+        """
+        :param device_name: the name (guid) of a device as provided by WinPcapDevices.list_devices() # noqa
+        :param packet_filter: packet_filter:  a high-level Boolean (filter) expression , npf
+        """
+        with WinPcap(device_name) as c:
+            ret = c.compile(packet_filter, netmask=netmask)
+        return ret
+
+    @staticmethod
+    def compile_and_capture_on_device_name(device_name,
+                                           packet_filter,
+                                           callback, 
+                                           netmask=0xffffff):
+        """
+        :param device_name: the name (guid) of a device as provided by WinPcapDevices.list_devices() 
+        :param packet_filter: packet_filter:  a high-level Boolean (filter) expression , npf 
+        :param callback: a function to call with each intercepted packet
+        """
+        with WinPcap(device_name) as c:
+            return c.compile(packet_filter, netmask=netmask) and c.setfilter() and c.run(callback)
 
     @classmethod
     def send_packet(self, pattern, packet_buffer, callback=None, limit=10):
