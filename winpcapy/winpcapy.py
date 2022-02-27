@@ -6,7 +6,6 @@ import ctypes
 import fnmatch
 import time
 import sys
-from collections import Callable
 
 
 class WinPcapDevices(object):
@@ -111,7 +110,7 @@ class WinPcap(object):
             wtypes.pcap_close(self._handle)
 
     def packet_handler(self, param, header, pkt_pointer):
-        if not isinstance(self._callback, Callable):
+        if not callable(self._callback):
             raise self.CallbackIsNotCallable()
         pkt_data = ctypes.string_at(pkt_pointer, header.contents.len)
         return self._callback(self, param, header, pkt_data)
