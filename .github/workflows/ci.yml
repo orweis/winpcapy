@@ -57,6 +57,14 @@ jobs:
         env:
           WINPCAPY_TEST_FAKE_LIBRARY: "1"
         run: python -m pytest
+      # Hide libpcap entirely (as on a Windows runner without Npcap) to check
+      # that the suite falls back to the fake library on its own.
+      - name: Unit tests with no pcap library available
+        if: runner.os == 'Linux'
+        run: >-
+          python -c "import ctypes.util, sys;
+          ctypes.util.find_library = lambda name: None;
+          import pytest; sys.exit(pytest.main(['-p', 'no:cacheprovider']))"
 
   build:
     runs-on: ubuntu-latest

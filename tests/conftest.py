@@ -12,6 +12,7 @@ real library and are skipped when it is not installed (or when the
 import ctypes
 import ctypes.util
 import os
+import sys
 from unittest import mock
 
 import pytest
@@ -31,17 +32,32 @@ class FakeLibrary:
         return self._functions.setdefault(name, mock.MagicMock(name=name))
 
 
+def _forget_package():
+    """Drop any (partially) imported winpcapy modules so they can be re-imported."""
+    for name in list(sys.modules):
+        if name == "winpcapy" or name.startswith("winpcapy."):
+            del sys.modules[name]
+
+
 def _import_package():
-    """Import winpcapy; return True if the real native library was loaded."""
+    """Import winpcapy; return True if the real native library was loaded.
+
+    Without ``WINPCAPY_TEST_FAKE_LIBRARY`` the real library is tried first.
+    If it cannot be loaded (or the variable is set), the package is imported
+    while ``ctypes.CDLL`` returns a :class:`FakeLibrary`.
+    """
     if not os.environ.get("WINPCAPY_TEST_FAKE_LIBRARY"):
         try:
+            import winpcapy
+
             return True
         except OSError:
-            pass
+            _forget_package()
+    _forget_package()
     fake_cdll = mock.patch.object(ctypes, "CDLL", side_effect=lambda *a, **kw: FakeLibrary())
     fake_find = mock.patch.object(ctypes.util, "find_library", return_value="libpcap-fake")
     with fake_cdll, fake_find:
-        pass
+        import winpcapy  # noqa: F401
     return False
 
 
