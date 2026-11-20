@@ -1,0 +1,93 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "winpcapy"
+dynamic = ["version"]
+description = "A Modern Python wrapper for WinPcap/Npcap"
+readme = "README.rst"
+requires-python = ">=3.9"
+# NOTE: kept identical to the metadata of previous releases. The LICENSE file
+# holds the GPLv2 text while the classifier says "v2 or later": the owner should
+# confirm which applies and switch to an SPDX expression (``license =
+# "GPL-2.0-only"`` or ``"GPL-2.0-or-later"``) before setuptools removes support
+# for the table form (announced for 2027-02-18).
+license = { text = "GPLv2" }
+authors = [{ name = "Or Weis", email = "py@bitweis.com" }]
+maintainers = [{ name = "Or Weis", email = "py@bitweis.com" }]
+keywords = ["winpcapy", "pcap", "winpcap", "npcap", "Packet capture", "tcpdump"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Networking :: Monitoring",
+]
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=8", "pytest-cov>=5"]
+dev = ["winpcapy[test]", "ruff>=0.15", "build>=1.2", "twine>=6"]
+
+[project.urls]
+Homepage = "https://github.com/orweis/winpcapy"
+Source = "https://github.com/orweis/winpcapy"
+Issues = "https://github.com/orweis/winpcapy/issues"
+Changelog = "https://github.com/orweis/winpcapy/blob/master/CHANGELOG.md"
+
+[tool.setuptools]
+packages = ["winpcapy"]
+# Moves to ``project.license-files`` once ``project.license`` is an SPDX string.
+license-files = ["LICENSE"]
+
+[tool.setuptools.dynamic]
+version = { attr = "winpcapy.__version__" }
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers"]
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+source = ["winpcapy"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "C4", "SIM", "PT", "RUF"]
+ignore = [
+    "UP031",   # %-formatting is kept for consistency with the existing code base
+    "RUF012",  # ctypes ``_fields_`` class attributes are lists by design
+    "SIM108",
+    "SIM112",  # Windows environment variable names are case-insensitive
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Mirrors the C header: star import kept for backwards compatibility, C-style
+# names and long prototype comments.
+"winpcapy/winpcapy_types.py" = ["F403", "F405", "E501", "E265", "E266", "N801"]
+"tests/**" = ["S101", "E501", "PT011", "PT018", "SIM117", "SIM905"]
