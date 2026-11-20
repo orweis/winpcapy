@@ -34,7 +34,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        include:
+          # Python 3.9 builds are not published for ubuntu-latest (26.04);
+          # keep testing the minimum supported version on 24.04 and Windows.
+          - os: ubuntu-24.04
+            python-version: "3.9"
+          - os: windows-latest
+            python-version: "3.9"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
